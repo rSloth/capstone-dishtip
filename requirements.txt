@@ -26,6 +26,7 @@ dash==3.2.0
 debugpy==1.8.16
 decorator==5.2.1
 defusedxml==0.7.1
+dotenv==0.9.9
 entrypoints==0.4
 executing==2.2.0
 fastjsonschema==2.21.2
@@ -103,6 +104,7 @@ Pygments==2.19.2
 pyparsing==3.2.3
 pytest==7.3.1
 python-dateutil==2.9.0.post0
+python-dotenv==1.1.1
 python-json-logger==3.3.0
 pytz==2025.2
 pywin32==311
