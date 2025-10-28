@@ -1,4 +1,4 @@
-🍴 DishTip — Backend
+# 🍴 DishTip — Backend
 
 **DishTip** is an AI-powered backend that helps users instantly discover a restaurant’s *best dishes* — by analyzing real customer reviews and blog posts.
 
