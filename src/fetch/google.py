@@ -1,125 +1,141 @@
-# Retrieving Google Reviews using Place ID
+"""
+google_api.py
+-------------
+Utilities for fetching restaurant information and Google Reviews
+via the Google Maps Places API.
 
-import requests
-from dotenv import load_dotenv
+Includes:
+- Place ID lookup from name
+- Restaurant metadata (name, address)
+- Review fetching (optionally language-filtered)
+"""
+
+from __future__ import annotations
 import os
+import requests
+from typing import Any, Dict, List, Optional
+from dotenv import load_dotenv
+from src.normalisation.normaliser import normalise_review
 
-# Importing the normalisation function
-from src.normalise.normaliser import normalise_review
+# ---- Logging ----
+import logging
+logger = logging.getLogger(__name__)
 
+# ---- Config ----
 load_dotenv()
-
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-# Function to get place ID from restaurant name
-def get_place_id(restaurant_name: str):
+BASE_URL_FINDPLACE = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+BASE_URL_DETAILS = "https://maps.googleapis.com/maps/api/place/details/json"
+
+# ---- Core Functions ----
+def fetch_place_id(restaurant_name: str) -> Optional[str]:
     """
-    Input a restaurant name. Fetches and returns ID, Google name and address.
+    Fetch the Google Place ID for a given restaurant name.
+    Returns the place_id if found, otherwise None.
     """
-    url = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
     params = {
         "input": restaurant_name,
         "inputtype": "textquery",
         "fields": "place_id,name,formatted_address",
-        "key": GOOGLE_API_KEY}
-    response = requests.get(url, params=params)
+        "key": GOOGLE_API_KEY,
+    }
+    response = requests.get(BASE_URL_FINDPLACE, params=params)
     data = response.json()
-    place_id = data["candidates"][0]["place_id"]
-    place_name = data["candidates"][0]["name"]
-    place_address = data["candidates"][0]["formatted_address"]
-    print(f"--- RESTAURANT DETAILS ---\n{place_name}\n{place_address}\n{place_id}\n--- END ---\n ")
-    return place_id if data.get("candidates") else None
 
-# Function to get place name and address using place ID
-def get_rest_info(place_id: str) -> dict:
+    candidates = data.get("candidates", [])
+    if not candidates:
+        logger.warning(f"No candidates found for '{restaurant_name}'")
+        return None
+
+    candidate = candidates[0]
+    logger.info(
+        f"\n Found restaurant: {candidate.get('name')}\n"
+        f"{candidate.get('formatted_address')}\n"
+        f"ID = {candidate.get('place_id')}\n"
+    )
+    return candidate.get("place_id")
+
+
+def fetch_restaurant_info(place_id: str) -> Dict[str, Optional[str]]:
     """
-    Retrieve a place's name and formatted address from Google Places Details API.
-    Returns a dict like:
-    {"name": "Place Name", "address": "123 Main St, City", "id": ID}
+    Retrieve basic metadata for a restaurant by Place ID.
+    Returns: {"name": ..., "address": ..., "id": ...}
     """
-    url = "https://maps.googleapis.com/maps/api/place/details/json"
     params = {
         "place_id": place_id,
         "fields": "name,formatted_address,place_id",
-        "key": GOOGLE_API_KEY
+        "key": GOOGLE_API_KEY,
     }
 
-    response = requests.get(url, params=params)
-    data = response.json()
+    resp = requests.get(BASE_URL_DETAILS, params=params)
+    data = resp.json()
 
     if data.get("status") != "OK":
-        raise ValueError(f"API error: {data.get('status')} - {data.get('error_message')}")
+        raise ValueError(f"Google API error: {data.get('status')} - {data.get('error_message')}")
 
     result = data.get("result", {})
     return {
         "name": result.get("name"),
         "address": result.get("formatted_address"),
-        "id": result.get("place_id")
+        "id": result.get("place_id"),
     }
 
 
-
-#Function to get reviews using place ID
-def get_place_reviews(place_id: str):
+def fetch_google_reviews(place_id: str, language: str = "en") -> List[Dict[str, Any]]:
     """
-    Fetches reviews for a given restaurant using its Google Maps Place ID and returns it normalised according to the schema in a dictionary.
+    Fetch and normalise Google reviews for a restaurant by its Place ID.
+    Optionally specify a language (e.g., 'de' for German).
+    Returns a list of normalised review dicts.
     """
-    url = "https://maps.googleapis.com/maps/api/place/details/json"
     params = {
         "place_id": place_id,
         "fields": "name,rating,user_ratings_total,reviews",
-        "key": GOOGLE_API_KEY
+        "language": language,
+        "key": GOOGLE_API_KEY,
     }
 
-    response = requests.get(url, params=params)
-    data = response.json()
+    resp = requests.get(BASE_URL_DETAILS, params=params)
+    data = resp.json()
 
-    if response.status_code != 200:
-        print("❌ Error:", data)
+    if resp.status_code != 200:
+        logger.error(f"HTTP error {resp.status_code}: {data}")
         return []
 
     if "error_message" in data:
-        print("⚠️ Google API error:", data["error_message"])
+        logger.error(f"Google API error: {data['error_message']}")
         return []
 
     result = data.get("result", {})
     reviews = result.get("reviews", [])
-    print(f"✅ Google reviews retrieved, found {len(reviews)} reviews for {result.get('name', 'restaurant')}\n ")
 
-    # normalising the reviews
-    r_norm_rev = []
+    if not reviews:
+        logger.info(f"No reviews found for {result.get('name', 'unknown place')}")
+        return []
 
+    logger.info(
+        f"✅ Retrieved {len(reviews)} reviews for {result.get('name', 'restaurant')} "
+        f"({language.upper()})"
+    )
+
+    # Normalise all reviews
+    normalised_reviews = [normalise_review(r, "google") for r in reviews]
+
+    # Optionally filter strictly by language field if needed
+    filtered_reviews = [
+        r for r in normalised_reviews if r.get("language") == language
+    ] or normalised_reviews
+
+    return filtered_reviews
+
+
+# --- Helper functions ---
+# Printing 5 reviews of a restaurant
+
+def print_google_reviews(reviews: list):
+    print(" ")
+    print("- GOOGLE REVIEWS -")
     for r in reviews:
-        r_norm_rev.append(normalise_review(r, "google"))
-    
-    return r_norm_rev
-
-
-
-def get_place_reviews_de(place_id: str, language: str = "de"):
-    """
-    Fetches reviews for a given restaurant using its Google Maps Place ID.
-    If available, returns reviews in the specified language (e.g., 'de' for German).
-    """
-    url = "https://maps.googleapis.com/maps/api/place/details/json"
-    params = {
-        "place_id": place_id,
-        "fields": "name,rating,user_ratings_total,reviews,url",
-        "language": language,
-        "key": GOOGLE_API_KEY
-    }
-
-    response = requests.get(url, params=params)
-    data = response.json()
-
-    if data.get("status") != "OK":
-        print("❌ Google API error:", data.get("error_message"))
-        return []
-
-    result = data.get("result", {})
-    reviews = result.get("reviews", [])
-
-    # Keep only German reviews if they explicitly have 'language': 'de'
-    german_reviews = [r for r in reviews if r.get("language") == "de"]
-
-    return german_reviews or reviews  # fall back to all if no German ones
+        print(f"{r['rating']}⭐: {r['text']}\n")
+        print("-"*3)
+    print("- END OF GOOGLE REVIEWS-")

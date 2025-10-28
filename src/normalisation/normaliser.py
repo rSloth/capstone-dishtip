@@ -1,8 +1,18 @@
-from src.normalise.schema import REVIEW_SCHEMA, REVIEW_MAPS, DISH
+"""
+Normalisation utilities:
+- Map heterogeneous review dicts from various sources into a single REVIEW_SCHEMA.
+- Optional coercions, defaults, and strict validation.
+"""
+
+from src.normalisation.schema import REVIEW_SCHEMA, REVIEW_MAPS
+
+# ---- Logging ----
+import logging
+logger = logging.getLogger(__name__)
 
 def normalise_review(raw: dict, source: str) -> dict:
     """
-    Normalize a single review dictionary to match the standard REVIEW_SCHEMA.
+    Normalise a single review dictionary to match the standard REVIEW_SCHEMA.
     Unrecognized keys are ignored. Missing keys get default values.
 
     Args:
@@ -25,28 +35,9 @@ def normalise_review(raw: dict, source: str) -> dict:
         # Find which schema field this raw key maps to
         schema_key = mapping.get(raw_key)
         if not mapping:
-            print(f"[WARN] No field mapping found for source '{source}'")
+            logger.warning(f"[WARN] No field mapping found for source '{source}'")
 
         if schema_key and schema_key in review:
             review[schema_key] = value
 
     return review
-
-
-def normalise_dish(raw: dict) -> list:
-    """
-    Normalize a single dish dictionary to match the standard DISH schema.
-    Unrecognized keys are ignored. Missing keys get default values.
-
-    Args:
-        raw (dict): Raw dish data.
-    """
-
-    normalised_list = []
-
-    for d in set(raw[0].get("dishes")):
-        new_dish = DISH.copy()
-        new_dish["name"] = d
-        normalised_list.append(new_dish)
-
-    return normalised_list
