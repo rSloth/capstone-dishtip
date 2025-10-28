@@ -1,13 +1,18 @@
 REVIEW_SCHEMA = {
+    "id": None,            # optional: unique id (e.g. hash of text+source)
     "source": None,        # 'google', 'blog', 'yelp', etc.
-    "restaurant": None,    # restaurant name
     "author": None,        # reviewer/blogger name
     "text": None,          # review text content
-    "rating": None,        # numeric rating (1–5) or None
+    "dishes": None,        # list of positively mentioned dish names in the review
+    "google_rating": None, # numeric rating (1–5) or None
     "date": None,          # ISO date string
     "url": None,           # source URL if available
     "language": None,      # optional: helps later with translation
-    "id": None,            # optional: unique id (e.g. hash of text+source)
+}
+
+DISH = {
+    "name": None,
+    "ranking": None
 }
 
 REVIEW_MAPS = {

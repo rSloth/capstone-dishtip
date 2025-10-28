@@ -1,4 +1,4 @@
-from schema import REVIEW_SCHEMA, REVIEW_MAPS
+from src.normalise.schema import REVIEW_SCHEMA, REVIEW_MAPS, DISH
 
 def normalise_review(raw: dict, source: str) -> dict:
     """
@@ -31,3 +31,22 @@ def normalise_review(raw: dict, source: str) -> dict:
             review[schema_key] = value
 
     return review
+
+
+def normalise_dish(raw: dict) -> list:
+    """
+    Normalize a single dish dictionary to match the standard DISH schema.
+    Unrecognized keys are ignored. Missing keys get default values.
+
+    Args:
+        raw (dict): Raw dish data.
+    """
+
+    normalised_list = []
+
+    for d in set(raw[0].get("dishes")):
+        new_dish = DISH.copy()
+        new_dish["name"] = d
+        normalised_list.append(new_dish)
+
+    return normalised_list

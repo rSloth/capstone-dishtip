@@ -1,130 +1,73 @@
 # services/nlp_service.py
-from __future__ import annotations
 from typing import Iterable, Dict, List, Set, Any
-import re
 from transformers import pipeline  # type: ignore[import]
+from src.normalise.schema import DISH
 
-# ---- Config ----
-MODEL_NAME = "Dizex/FoodBaseBERT-NER"
-LABEL_WHITELIST: Set[str] = {"Food", "Dish"}
-MIN_SCORE: float = 0.45
+# --- 1 Load your model once ---
+extractor = pipeline(
+    "text2text-generation",
+    model="google/flan-t5-large",
+    do_sample=False,
+    temperature=0.0,
+    truncation=True
+)
 
-SENT_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+# --- 2 Build prompt function ---
+def make_prompt(review: str) -> str:
+    return (
+        "Extract ONLY names of dishes on the restaurant's menu mentioned word-for-word in the text below.\n"
+        "Do not add or guess any dishes. If no dishes are mentioned, reply 'none'.\n"
+        "Output a comma-separated list.\n\n"
+        f"Text: {review}\nOutput:"
+    )
 
-# ---- Lazy singleton loader ----
-_ner_pipe: Any | None = None
-
-def get_ner() -> Any:
-    """Load and cache the HuggingFace NER pipeline."""
-    global _ner_pipe
-    if _ner_pipe is None:
-        _ner_pipe = pipeline(
-            task="ner",
-            model=MODEL_NAME,
-            aggregation_strategy="simple",
-            device=0  # set to -1 if no GPU
-        )
-    return _ner_pipe
-
-
-# ---- Core function ----
-def extract_dishes_from_texts(
-    texts: Iterable[str],
-    min_score: float = MIN_SCORE,
-    label_whitelist: Set[str] = LABEL_WHITELIST
-) -> Dict[str, Dict[str, Any]]:
+def extract_dishes(reviews, verbose = False):
     """
-    Return a dictionary keyed by dish name.
-    Example:
-      {
-        "spaghetti carbonara": {
-            "count": 3,
-            "mentions": ["...", "..."],
-            "avg_conf": 0.73
-        }
-      }
-    """
-    ner = get_ner()
-    assert ner is not None  # helps Pylance know it's not None
-    dish_map: Dict[str, Dict[str, Any]] = {}
+    Extract positively mentioned dish names from reviews using Flan-T5.
 
-    for full_text in texts:
-        sentences = SENT_SPLIT_RE.split(full_text.strip()) if full_text else []
-        for sent in sentences:
-            if not sent:
-                continue
-            entities: List[Dict[str, Any]] = ner(sent)
-            for e in entities:
-                group = e.get("entity_group") or e.get("entity")
-                score = float(e.get("score", 0.0))
-                word = (e.get("word") or "").strip()
+    Args:
+        reviews (str): Reviews in the specific schema format.
+        verbose (bool): Set to False by default. If True, prints all reviews and matched dishes.
+    
+    Returns:
+        list[str]: List of dish names (or ['none'] if none found).
+    """    
+    # --- 3 Prepare input data ---
+    review_texts = [r["text"] for r in reviews]       # collect just the review text
+    prompts = [make_prompt(text) for text in review_texts]
 
-                if not word or group not in label_whitelist or score < min_score:
-                    continue
+    # --- 4 Run batched extraction ---
+    results = extractor(prompts, max_new_tokens=20, batch_size=4)
 
-                dish = normalize_dish(word)
-                entry = dish_map.setdefault(
-                    dish, {"count": 0, "mentions": [], "avg_conf_sum": 0.0}
-                )
-                entry["count"] = int(entry["count"]) + 1
-                if len(entry["mentions"]) < 10:
-                    entry["mentions"].append(sent.strip())
-                entry["avg_conf_sum"] = float(entry["avg_conf_sum"]) + score
+    # --- 5 Clean and structure outputs ---
+    dish_lists = []
+    for i, res in enumerate(results):
+        output_text = res["generated_text"].strip()
+        if output_text.lower() == "none":
+            dishes = ["none"]
+        else:
+            dishes = [d.strip().lower() for d in output_text.split(",") if d.strip()]
+        dish_lists.append({
+            "id": i,
+            "dishes": dishes})
+        
+        if verbose == True:
+            print(f"📝 {review_texts[i]}")
+            print(f"🍽️ {dishes}\n")   
 
-    for dish, entry in dish_map.items():
-        cnt = max(entry["count"], 1)
-        entry["avg_conf"] = round(entry.pop("avg_conf_sum") / cnt, 3)
+    # --- 6 Add normalised dish list to each review ---
+    
+        normalised_list = []
 
-    return dish_map
+    for entry in dish_lists:
+        normalised_list = []
 
+        for d in set(entry.get("dishes")):
+            new_dish = DISH.copy()
+            new_dish["name"] = d
+            normalised_list.append(new_dish)
+        reviews[entry.get("id")]["dishes"] = normalised_list
 
-# ---- Helpers ----
-def normalize_dish(s: str) -> str:
-    s = s.lower()
-    s = re.sub(r"\s+", " ", s).strip()
-    s = re.sub(r"[^\w\s\-’']", "", s)
-    return s
-
-
-def conv_to_food_string(text: str, entities: List[Dict[str, Any]]) -> List[str]:
-    """
-    Convert raw entity spans to clean dish strings.
-    Example: conv_to_food_string(example, ner_entity_results)
-    """
-    ents: List[Dict[str, Any]] = []
-    for ent in entities:
-        e = {
-            "start": ent["start"],
-            "end": ent["end"],
-            "label": ent.get("entity_group", ""),
-        }
-        if (
-            ents
-            and -1 <= ent["start"] - ents[-1]["end"] <= 1
-            and ents[-1]["label"] == e["label"]
-        ):
-            ents[-1]["end"] = e["end"]
-            continue
-        ents.append(e)
-    return [text[e["start"]:e["end"]] for e in ents]
-
-
-
-from transformers import pipeline
-
-ner = pipeline("ner", model=MODEL_NAME, aggregation_strategy="simple")
-# NER = Named Entity Recognition
-
-reviews = [
-    "The spaghetti carbonara was amazing!",
-    "The tiramisu was creamy and delicious.",
-    "I didn’t like the lasagna; too salty.",
-    "Their Margherita pizza is the best in town!",
-    "Service sehr herzlich und locker, Essen sehr frisch und schmackhaft. Die Fisch Buns sowie das Spicy Shrimp Popcorn sind wirklich toll. Wir kommen wieder, wenn wir in Berlin sind."
-    ]
-
-for r in reviews:
-    entities = ner(r)
-    dishes = conv_to_food_string(r, entities)
-    print(f"📝 {r}")
-    print(f"🍽️ {dishes}\n")
+    # --- 7 Add a serialised ID to each review ---
+    for i, review in enumerate(reviews):
+        review["id"] = i
