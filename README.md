@@ -5,6 +5,22 @@ It fetches live Google review data, extracts dish mentions using an NLP model, a
 It’s your AI food scout that tells you *what to order* before you even sit down. 😋
 
 ---
+## 🧠 How to locally run the app
+
+If you want to run both frontend and backend, from the project root:
+
+```bash
+# Terminal 1 (backend)
+fastapi dev backend/main.py
+
+# Terminal 2 (frontend)
+npm --prefix frontend run dev
+```
+
+Frontend → http://localhost:5173
+Backend → http://127.0.0.1:8000
+
+---
 
 ## 🧠 Overview
 
