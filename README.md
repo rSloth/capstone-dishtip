@@ -1,96 +1,89 @@
-# 🍴 DishTip — Backend
+# 🍴 DishTip
 
-**DishTip** is an AI-powered backend that helps users instantly discover a restaurant’s *best dishes* — by analyzing real customer reviews and blog posts.
-
-Simply select a restaurant, and DishTip uses live data from Google Reviews and curated food blogs to identify the most-loved dishes. It’s your personal AI food scout that finds what’s truly worth ordering. 😋
+**DishTip** is an AI-powered backend that helps users instantly discover a restaurant’s *best dishes* by analyzing real customer reviews.
+It fetches live Google review data, extracts dish mentions using an NLP model, and ranks them by frequency and source validity.
+It’s your AI food scout that tells you *what to order* before you even sit down. 😋
 
 ---
 
-## Overview
+## 🧠 Overview
 
-The **DishTip Backend** handles:
+The **DishTip Backend** is built with **FastAPI** and serves as the engine behind the DishTip web app.
+It handles:
 
-* 🌐 Fetching and aggregating Google and blog review data
-* 🧠 Applying NLP models for sentiment and keyword extraction
-* 📊 Ranking dishes by sentiment, mention frequency, and popularity
-* ⚙️ Serving recommendations via a clean REST API (FastAPI)
+* 🌐 Fetching Google Place and review data
+* 🧠 Extracting dish mentions with a fine-tuned **Flan-T5** model
+* 📊 Ranking and returning the top dishes per restaurant
+* ⚙️ Serving clean JSON responses to the frontend
 
 ---
 
 ## 🧩 System Architecture
 
 ```
-User → Frontend (Search Restaurant)
+User → React Frontend (Place Autocomplete Search)
               ↓
         FastAPI Backend
               ↓
-    Google Reviews & Blog APIs
+       Google Places API
               ↓
-     NLP Model (Sentiment + NER)
+  Flan-T5 Model (Dish Extraction)
               ↓
-     Dish Ranking & Recommendation
+     Dish Ranking & Response
               ↓
-          JSON Response
+          JSON Output
 ```
 
-**Flow Summary**
+### Flow Summary
 
-1. User searches a restaurant (via Google Maps API).
-2. Backend fetches Google reviews + matching blog articles.
-3. NLP models extract dish mentions and sentiment.
-4. Dishes are ranked and returned as top 3–5 recommendations.
-
----
-
-## 🧠 Tech Stack
-
-| Layer                  | Technology                                       | Purpose                             |
-| ---------------------- | ------------------------------------------------ | ----------------------------------- |
-| **Framework**          | FastAPI                                          | Lightweight, async web API          |
-| **NLP / Sentiment**    | Hugging Face Transformers (BERT, RoBERTa), VADER | Extract dish mentions and sentiment |
-| **APIs**               | Google Places API, Bing Web Search API           | Fetch reviews & blog content        |
-| **Data Handling**      | Pandas, NumPy                                    | Clean, aggregate, and rank data     |
-| **Caching (optional, probably not implementing lets )** | Redis                                            | Avoid redundant API calls           |
-| **Database** (also not sure about that)           | SQLite / PostgreSQL                              | Cache restaurant & dish results     |
-| **Deployment**         | Docker + Render / Railway                        | Cloud hosting for backend           |
+1. User searches for a restaurant (via Google Places Autocomplete).
+2. Backend fetches Google Reviews using the Place ID.
+3. NLP pipeline extracts dish names directly from review text.
+4. Dishes are normalized, ranked, and returned to the frontend.
 
 ---
 
-## 📡 API Endpoints (Example)
+## 🧰 Tech Stack
 
-| Method | Endpoint                           | Description                                |
-| ------ | ---------------------------------- | ------------------------------------------ |
-| `GET`  | `/restaurant/search`               | Search for restaurants via Google Maps API |
-| `GET`  | `/restaurant/{id}/reviews`         | Fetch and analyze Google reviews           |
-| `GET`  | `/restaurant/{id}/recommendations` | Return top 3–5 recommended dishes          |
-| `GET`  | `/health`                          | Health check endpoint                      |
+| Layer          | Technology                | Purpose                                       |
+| -------------- | ------------------------- | --------------------------------------------- |
+| **Framework**  | FastAPI                   | Lightweight async REST API                    |
+| **Model**      | `google/flan-t5-large`    | Extract dish names from reviews               |
+| **APIs**       | Google Places API         | Retrieve reviews and metadata                 |
+| **Data**       | Pandas, NumPy             | Clean and structure review data               |
+| **Deployment** | Docker / Render / Railway | Cloud hosting for backend                     |
+| **Frontend**   | React + Tailwind CSS      | UI built for smooth Google search integration |
 
-**Example response:**
+---
+
+## 📡 API Endpoints
+
+| Method | Endpoint                      | Description                             |
+| ------ | ----------------------------- | --------------------------------------- |
+| `GET`  | `/recommendations/{place_id}` | Returns the top dishes for a restaurant |
+| `GET`  | `/health`                     | Health check endpoint                   |
+
+### Example Response
 
 ```json
 {
-  "restaurant": "Luigi's Trattoria",
-  "top_dishes": [
+  "restaurant": "Brasserie Torbar",
+  "recommendations": [
     {
-      "name": "Spaghetti Carbonara",
-      "score": 9.4,
-      "mentions": 52,
-      "sentiment": 0.91,
-      "review_snippet": "Best carbonara in town — creamy and rich!"
+      "dish_name": "truffle risotto",
+      "ranking": 1,
+      "author": "Yusuf Hadi",
+      "source": "google",
+      "timestamp": 1759338734,
+      "review_link": null
     },
     {
-      "name": "Tiramisu",
-      "score": 8.9,
-      "mentions": 31,
-      "sentiment": 0.88,
-      "review_snippet": "So fluffy and perfectly balanced."
-    },
-    {
-      "name": "Margherita Pizza",
-      "score": 8.5,
-      "mentions": 24,
-      "sentiment": 0.83,
-      "review_snippet": "Classic and flavorful, perfect crust."
+      "dish_name": "900g steak",
+      "ranking": 2,
+      "author": "Yusuf Hadi",
+      "source": "google",
+      "timestamp": 1759338734,
+      "review_link": null
     }
   ]
 }
@@ -103,112 +96,82 @@ User → Frontend (Search Restaurant)
 ```
 dishtip-backend/
 │
-├── app/
-│   ├── __init__.py
-│   ├── main.py                   # FastAPI entry point
-│   │
+├── src/
+│   ├── main.py                 # FastAPI entry point
 │   ├── api/
-│   │   ├── __init__.py
-│   │   ├── routes_restaurant.py  # endpoints for /restaurant/*
-│   │   └── routes_health.py      # health check
-│   │
-│   ├── core/
-│   │   ├── __init__.py
-│   │   └── config.py             # environment & settings
-│   │
+│   │   └── routes_recommend.py # main /recommendations endpoint
 │   ├── services/
-│   │   ├── __init__.py
-│   │   ├── google_service.py     # fetch Google Reviews
-│   │   ├── blog_service.py       # fetch blog articles (via Bing API or RSS)
-│   │   ├── nlp_service.py        # sentiment + entity extraction
-│   │   ├── ranking_service.py    # combine metrics and rank dishes
-│   │   └── caching_service.py    # optional Redis caching
-│   │
-│   ├── utils/
-│   │   ├── __init__.py
-│   │   ├── text_utils.py         # text cleaning, tokenization
-│   │   ├── scoring_utils.py      # scoring helper functions
-│   │   └── api_utils.py          # request/response helpers
-│   │
-│   ├── db/
-│   │   ├── __init__.py
-│   │   ├── database.py           # SQLAlchemy connection
-│   │   └── crud.py               # cached query operations
-│   │
-│   └── tests/
-│       ├── test_api.py
-│       ├── test_nlp.py
-│       └── test_ranking.py
+│   │   ├── google_service.py   # fetches Google Reviews
+│   │   └── dish_extractor.py   # runs Flan-T5 dish extraction
+│   ├── nlp/
+│   │   └── model_loader.py     # lazy model loading
+│   ├── normalisation/
+│   │   └── schema.py           # defines DISH schema
+│   └── utils/
+│       └── text_utils.py       # cleaning and helpers
 │
-├── .env.example
 ├── requirements.txt
+├── .env.example
 ├── Dockerfile
-├── README.md
-└── LICENSE
+└── README.md
 ```
 
 ---
 
-## 🧰 Installation
+## ⚙️ Installation
 
 ```bash
 git clone https://github.com/<yourusername>/dishtip-backend.git
 cd dishtip-backend
 
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # or .venv\Scripts\activate
 
 pip install -r requirements.txt
 
 cp .env.example .env
-# Fill in your Google/Bing API keys
+# Fill in your Google API key
+```
 
-uvicorn app.main:app --reload
+Run the API:
+
+```bash
+uvicorn src.main:app --reload
 ```
 
 ---
 
 ## 🔐 Environment Variables
 
-| Variable         | Description                                                                       |
-| ---------------- | --------------------------------------------------------------------------------- |
-| `GOOGLE_API_KEY` | Google Maps / Places API key                                                      |
-| `BING_API_KEY`   | Bing Web Search API key                                                           |
-| `DATABASE_URL`   | PostgreSQL or SQLite URL                                                          |
-| `CACHE_URL`      | Redis URL (optional)                                                              |
-| `NLP_MODEL`      | Name of Hugging Face model (default: `cardiffnlp/twitter-roberta-base-sentiment`) |
+| Variable         | Description                                               |
+| ---------------- | --------------------------------------------------------- |
+| `GOOGLE_API_KEY` | Google Maps / Places API key                              |
+| `NLP_MODEL`      | Hugging Face model name (default: `google/flan-t5-large`) |
+| `LOG_LEVEL`      | Logging verbosity (e.g., `info`, `debug`)                 |
 
 ---
 
-## 🧮 Scoring Formula (Simplified)
+## 🚀 Integration with Frontend
 
-Each dish’s final score combines:
+The React frontend (in `/frontend`) uses **Google Places Autocomplete** to fetch the restaurant’s `place_id` and calls:
 
 ```
-DishScore = (0.5 × SentimentScore) + (0.3 × MentionFrequency) + (0.2 × AvgRating)
+GET http://localhost:8000/recommendations/{place_id}
 ```
 
-This can be adjusted dynamically in config to emphasize sentiment, popularity, or consistency.
+to fetch the top dishes.
 
 ---
 
-## 📈 Future Enhancements
+## 🧩 Future Enhancements
 
-* 🍳 Personalized recommendations (based on dietary preferences)
-* 🏙️ Location-based suggestions (top dishes near you)
-* 🧾 Multi-source review integration (TripAdvisor, Zomato, Yelp)
-* 💬 AI chat layer (“What’s the best spicy dish here?”)
+* Prettier design
+* Multi-language review handling
+* Blog + influencer data integration
 
 ---
 
 ## 🧑‍🍳 Credits
 
-Built with ❤️ using Python, FastAPI, and Hugging Face NLP.
+Built with ❤️ using **FastAPI**, **Transformers**, and **React**.
 Part of the **DishTip** project — where **data meets delicious.**
-
----
-
-Would you like me to now generate:
-
-* a **`requirements.txt`** (with the exact libraries you’ll need),
-* and a sample **`.env.example`** file (so it’s plug-and-play for your repo)?
