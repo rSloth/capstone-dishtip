@@ -12,13 +12,13 @@ from src.recommendation.recs import form_recommendations
 
 app = FastAPI(title="DishTip Backend", version="1.0", debug=True)
 
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],  # you can later restrict this to your frontend domain
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # you can later restrict this to your frontend domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class DishRequest(BaseModel):
     ingredients: list[str]
