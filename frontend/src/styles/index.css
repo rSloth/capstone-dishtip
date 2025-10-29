@@ -1,0 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global styles */
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  background-color: #ECECEC;
+  color: #222831;
+}
+
+/* Google Autocomplete Custom Styling */
+#search-bar {
+  width: 48% !important; /* matches DishTip title width visually */
+  min-width: 500px !important;
+  max-width: 720px !important;
+  padding: 1.1rem 1.5rem !important;
+  font-size: 1.1rem !important;
+  color: #C1A57B !important;
+  background-color: #ffffff !important;
+  border: 2px solid #C1A57B !important;
+  border-radius: 0.7rem !important; /* subtle roundness */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease !important;
+  display: block;
+  margin: 0 auto;
+}#search-bar {
+  width: 48% !important;
+  min-width: 500px !important;
+  max-width: 720px !important;
+  padding: 1.1rem 1.5rem !important;
+  font-size: 1.1rem !important;
+  color: #222831 !important;
+  background-color: #ffffff !important;
+  border: 2px solid #C1A57B !important;
+  border-radius: 0.8rem !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease !important;
+  display: block;
+  margin: 0 auto;
+}
+
+#search-bar:hover {
+  transform: scale(1.01);
+}
+
+#search-bar:focus {
+  outline: none !important;
+  border-color: #C1A57B !important;
+  box-shadow: 0 0 15px rgba(244, 153, 26, 0.25) !important;
+  transform: scale(1.02);
+}
+
+.pac-container {
+  z-index: 9999 !important;
+  font-size: 1rem;
+  border-radius: 0.8rem !important;
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Google Autocomplete: icon + name on one line, address below --- */
+
+/* Container */
+.pac-container {
+  background: #fff !important;
+  border: 1px solid #F2EAD3 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,.1) !important;
+  font-family: 'Inter', sans-serif !important;
+  z-index: 2000 !important;
+}
+
+.pac-item {
+  display: block !important;            /* not flex */
+  padding: 6px 8px !important;
+  border-bottom: 0px solid #F9F5F0 !important;
+  color: #344F1F !important;
+}
+
+/* Pin icon – sits left of the name */
+.pac-icon {
+  float: left !important;
+  width: 14px !important;
+  height: 14px !important;
+  margin: 3px 4px 0 0 !important;       /* space to the name */
+  opacity: .7 !important;
+}
+
+/* Restaurant name (first line, next to icon) */
+.pac-item-query {
+  display: inline-block !important;     /* share the line with icon */
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+  color: #222831 !important;
+  line-height: 0.5px !important;
+  margin-bottom: 0.5px !important;
+
+}
+
+/* Force a new line after the name */
+.pac-item-query::after {
+  content: "" !important;
+  display: block !important;            /* line break */
+  margin-bottom: 0.5px !important;
+
+}
+
+/* Address line (second line, indented under name—not icon) */
+.pac-item-query + span {
+  display: block !important;
+  margin-left: 20px !important;         /* align under text */
+  margin-top: -10px !important;
+  font-size: 0.88rem !important;
+  color: #777 !important;
+}
+
+/* Hover */
+.pac-item:hover {
+  background-color: #F2EAD3 !important;
+  cursor: pointer !important;
+}
+
+/* Optional: last item no divider */
+.pac-item:last-child {
+  border-bottom: none !important;
+}
+
