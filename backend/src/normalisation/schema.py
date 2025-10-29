@@ -47,17 +47,14 @@ REVIEW_MAPS: Dict[str, Dict[str, str]] = {
     },
 }
 
-# -------- (Optional) Tip Schema --------
-# TIP_SCHEMA defines the structure used when presenting ranked dish insights
-# in the DishTip UI layer. You can keep it separate from raw review schema.
-#
-# TIP_SCHEMA = {
-#     "dish_name": None,
-#     "review_text": None,
-#     "excerpt": None,
-#     "author": None,
-#     "source": None,
-#     "review_link": None,
-#     "pos_score": None,
-#     "ranking": None,
-# }
+# -------- Recommendation Schema --------
+# Recommendation format returned by FastAPI
+
+REC_SCHEMA = {
+    "dish_name": None,
+    "author": None,
+    "source": None,
+    "timestamp": None,
+    "review_link": None,
+    "ranking": None,
+}
