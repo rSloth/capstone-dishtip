@@ -6,7 +6,6 @@ charset-normalizer==3.4.4
 click==8.3.0
 colorama==0.4.6
 dnspython==2.8.0
-dotenv==0.9.9
 email-validator==2.3.0
 fastapi==0.120.2
 fastapi-cli==0.0.14
@@ -20,7 +19,6 @@ httpx==0.28.1
 huggingface-hub==0.36.0
 idna==3.11
 Jinja2==3.1.6
-logging==0.4.9.6
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
 mdurl==0.1.2
@@ -50,9 +48,6 @@ torch==2.9.0
 tqdm==4.67.1
 transformers==4.57.1
 typer==0.20.0
-typing==3.7.4.3
-typing-inspection==0.4.2
-typing_extensions==4.15.0
 urllib3==2.5.0
 uvicorn==0.38.0
 watchfiles==1.1.1
