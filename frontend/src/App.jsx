@@ -33,7 +33,7 @@ export default function App() {
 
       const autoC = new window.google.maps.places.Autocomplete(inputRef.current, {
         fields: ["place_id", "name", "formatted_address", "types"],
-        types: ["establishment"],              // business places
+        types: ["restaurant", "cafe", "bakery", "bar"],              // business places
         componentRestrictions: { country: "de" }, // 🇩🇪 Germany only
       });
 
