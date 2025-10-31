@@ -1,49 +1,99 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
 import traceback
+import time
+import logging
+import inspect
 
-# backend/main.py
-from src.fetch.google_reviews import fetch_google_reviews 
+# ---- DishTip modules ----
+from src.fetch.google_reviews import fetch_google_reviews
 from src.fetch.google_place import Restaurant
-from src.nlp.dish_extractor import extract_dishes
+from backend.src.nlp.extractor_openai import extract_dishes_openai
 from src.ranking.functions import assign_rankings
 from src.recommendation.recs import form_recommendations
 
-app = FastAPI(title="DishTip Backend", version="1.0", debug=True)
+# ---- App setup ----
+app = FastAPI(title="DishTip Backend", version="2.0", debug=True)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # you can later restrict this to your frontend domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-class DishRequest(BaseModel):
-    ingredients: list[str]
+# Logger config
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
+
+
+# ---- Timing Decorator ----
+def timed(func):
+    """
+    Measures execution time of sync or async functions and logs it.
+    Works with FastAPI (async) and plain functions.
+    """
+    import functools
+    import inspect
+    import time
+
+    if inspect.iscoroutinefunction(func):
+
+        @functools.wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            start = time.perf_counter()
+            logger.info(f"⏳ Starting async: {func.__name__}")
+            result = await func(*args, **kwargs)
+            duration = time.perf_counter() - start
+            logger.info(f"✅ Finished async: {func.__name__} in {duration:.2f}s")
+            return result
+
+        return async_wrapper
+
+    else:
+
+        @functools.wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            start = time.perf_counter()
+            logger.info(f"⏳ Starting: {func.__name__}")
+            result = func(*args, **kwargs)
+            duration = time.perf_counter() - start
+            logger.info(f"✅ Finished: {func.__name__} in {duration:.2f}s")
+            return result
+
+        return sync_wrapper
+
 
 @app.get("/")
 def root():
-    return {"message": "Dishtip API is ready to serve hot tea and tips"}
+    return {"message": "DishTip API is ready to serve hot tea and tips ☕️"}
 
+
+# ✅ Timed and non-blocking route
 @app.get("/recommendations/{place_id}")
-def get_recommendations(place_id: str):
+@timed
+async def get_recommendations(place_id: str):
     try:
-        reviews = fetch_google_reviews(place_id)
-        reviews = extract_dishes(reviews, True)
+        reviews = await run_in_threadpool(fetch_google_reviews, place_id)
+        logger.info(f"📄 Retrieved {len(reviews)} reviews")
+
+        reviews = await run_in_threadpool(extract_dishes_openai, reviews, True)
+        logger.info(f"🍽️ Dishes extracted for {len(reviews)} reviews")
+
         assign_rankings(reviews, True)
         recommendations = form_recommendations(reviews)
+
         return {"recommendations": recommendations}
+
     except Exception as e:
-        traceback.print_exc()  # This prints the real error in your terminal
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/restaurant_info/{place_id}")
-def get_rest_info(place_id: str):
-    restaurant = Restaurant(place_id)
-
+@timed
+async def get_rest_info(place_id: str):
+    restaurant = await run_in_threadpool(Restaurant, place_id)
     return {"restaurant_info": restaurant}
-
-
-
