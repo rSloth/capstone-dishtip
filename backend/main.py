@@ -9,7 +9,7 @@ import inspect
 # ---- DishTip modules ----
 from src.fetch.google_reviews import fetch_google_reviews
 from src.fetch.google_place import Restaurant
-from backend.src.nlp.extractor_openai import extract_dishes_openai
+from src.nlp.extractor_openai import extract_dishes_openai
 from src.ranking.functions import assign_rankings
 from src.recommendation.recs import form_recommendations
 
