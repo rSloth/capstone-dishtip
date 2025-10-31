@@ -1,4 +1,4 @@
-# Install this if you want to use a local LLM instead of the OpenAI API
+# Install this if you want to use a local LLM instead of the OpenAI API call
 
 fastapi[standard]==0.120.3
 uvicorn[standard]
