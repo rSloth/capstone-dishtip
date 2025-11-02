@@ -300,7 +300,8 @@ export default function App() {
                 {dishes.slice(0, displayCount).map((dish, index) => (
                   <div key={index} className="pb-6 last:pb-0">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-bold text-gray-900 uppercase whitespace-nowrap">
+                      <h3 className="text-m font-bold text-gray-900 uppercase break-words whitespace-normal leading-snug max-w-[70%]">
+
                         {dish.dish_name || `Dish ${index + 1}`}
                       </h3>
                       <div className="flex-1 border-b border-dotted border-gray-400 self-center"></div>
@@ -308,7 +309,7 @@ export default function App() {
                         {dishPrices[index]}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-600 italic space-y-1 ml-1">
+                    <div className="text-xs text-gray-600 italic space-y-1 ml-1">
                       {dish.author && (
                         <p><span className="font-normal">Recommended by</span> {dish.author}</p>
                       )}
@@ -320,7 +321,7 @@ export default function App() {
                               href={dish.review_link}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="hover:underline font-medium"
+                              className="hover:underline font-normal"
                               style={{ color: '#7B113A' }}
                             >
                               {dish.source}

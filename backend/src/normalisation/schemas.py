@@ -1,5 +1,5 @@
 """
-basemodel.py
+schemas.py
 ----------
 Defines canonical data schemas and source field mappings used for normalization. They are not really used but might be useful later?
 """
@@ -47,7 +47,6 @@ REVIEW_MAPS: Dict[str, Dict[str, str]] = {
         # "inLanguage": "language",
     },
 }
-
 
 # -------- Recommendation Schema --------
 # Recommendation format returned by FastAPI
