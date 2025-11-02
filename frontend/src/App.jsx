@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Plus, RefreshCcw } from "lucide-react"; // ⬅️ add this import at the top
-
+import { Analytics } from "@vercel/analytics/next"
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const googleKey = import.meta.env.VITE_GOOGLE_API_KEY;
