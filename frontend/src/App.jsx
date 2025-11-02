@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { Plus, RefreshCcw } from "lucide-react"; // ⬅️ add this import at the top
+
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const googleKey = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -10,20 +12,35 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [displayCount, setDisplayCount] = useState(5);
   const [loadingEmoji, setLoadingEmoji] = useState('🍕');
+  const [usedPriceLabels, setUsedPriceLabels] = useState([]);
+  const [dishPrices, setDishPrices] = useState([]);
 
   const inputRef = useRef(null);
 
-  // Random emoji selector for loading animation
   const loadingEmojis = ['🍕', '🍣', '🍜', '🐟', '🦖', '🍷'];
+  const priceLabels = [
+    'some money', 'lots of money', 'expensive', 'cheap', 'good price', 
+    'schnäppchen', 'bargain', 'worth it', 'priceless', 'will ruin you', 
+    'not enough', "doesn't matter", 'holy cow', 'daddy pays', "don't look"
+  ];
+  
+  const getRandomPrice = () => {
+    const available = priceLabels.filter(p => !usedPriceLabels.includes(p));
+    if (available.length === 0) {
+      setUsedPriceLabels([]);
+      return priceLabels[Math.floor(Math.random() * priceLabels.length)];
+    }
+    const selected = available[Math.floor(Math.random() * available.length)];
+    setUsedPriceLabels(prev => [...prev, selected]);
+    return selected;
+  };
   
   useEffect(() => {
-    // Select random emoji when component mounts
     const randomEmoji = loadingEmojis[Math.floor(Math.random() * loadingEmojis.length)];
     setLoadingEmoji(randomEmoji);
   }, []);
 
   useEffect(() => {
-    // Load Google Places script manually (only once)
     const scriptId = "google-places-script";
     if (!document.getElementById(scriptId)) {
       const script = document.createElement("script");
@@ -46,7 +63,6 @@ export default function App() {
         componentRestrictions: { country: "de" },
       });
 
-      // When user selects a place
       autoC.addListener("place_changed", async () => {
         const place = autoC.getPlace();
         if (!place?.place_id) return;
@@ -55,29 +71,25 @@ export default function App() {
         setLoading(true);
         setDisplayCount(5);
         setRestaurantInfo(null);
+        setUsedPriceLabels([]);
         
-        // Select new random emoji for each search
         const randomEmoji = ['🍕', '🍣', '🍜', '🐟', '🦖', '🍷'][Math.floor(Math.random() * 6)];
         setLoadingEmoji(randomEmoji);
 
         try {
-          // First, get restaurant info
           const infoUrl = `${backendUrl}/restaurant_info/${place.place_id}`;
           const infoRes = await fetch(infoUrl);
           const infoData = await infoRes.json();
-          setRestaurantInfo(infoData.restaurant_info); // Access nested restaurant_info object
+          setRestaurantInfo(infoData.restaurant_info);
 
-          // Then get recommendations
           const recUrl = `${backendUrl}/recommendations/${place.place_id}`;
           const recRes = await fetch(recUrl);
           const recData = await recRes.json();
 
-          console.log("🔥 Backend response:", recData);
-
-          // EXPECTED SHAPE:
-          // { recommendations: [ { dish_name, author, source, timestamp, review_link, ranking }, ... ] }
           const dishesArray = recData?.recommendations ?? [];
           setDishes(Array.isArray(dishesArray) ? dishesArray : []);
+          const prices = dishesArray.map(() => getRandomPrice());
+          setDishPrices(prices);
         } catch (err) {
           console.error("Backend error:", err);
           setDishes([]);
@@ -88,22 +100,25 @@ export default function App() {
     }
   }, []);
 
-  const handleTryAgain = () => {
-    window.location.reload();
-  };
-
+  const handleTryAgain = () => window.location.reload();
   const handleGiveFeedback = () => {
-    window.open('YOUR_GOOGLE_FORM_URL', '_blank');
-  };
+  const restaurantName = restaurantInfo?.name || restaurant?.name || "";
+  const topDishes = dishes
+    .slice(0, 5)
+    .map(d => d.dish_name)
+    .filter(Boolean)
+    .join(", ");
 
-  const handleLoadMore = () => {
-    setDisplayCount(prev => prev + 5);
-  };
+  const feedbackUrl = `https://docs.google.com/forms/d/e/1FAIpQLSdGZ9tCVAsPNum3nPdU6qrl2YhjbEe5cKA6pdMY620Kg7CWhA/viewform?usp=pp_url&entry.28632495=${encodeURIComponent(restaurantName)}&entry.1243942471=${encodeURIComponent(topDishes)}`;
+
+  window.open(feedbackUrl, "_blank");
+};
+
+  const handleLoadMore = () => setDisplayCount(prev => prev + 5);
 
   const formatTimeAgo = (timestamp) => {
     if (!timestamp) return '';
     try {
-      // Check if timestamp is in seconds (Unix timestamp) and convert to milliseconds
       const timestampMs = timestamp < 10000000000 ? timestamp * 1000 : timestamp;
       const date = new Date(timestampMs);
       const now = new Date();
@@ -112,15 +127,10 @@ export default function App() {
       const diffMonths = Math.floor(diffDays / 30);
       const diffYears = Math.floor(diffDays / 365);
 
-      if (diffYears > 0) {
-        return `${diffYears} year${diffYears > 1 ? 's' : ''} ago`;
-      } else if (diffMonths > 0) {
-        return `${diffMonths} month${diffMonths > 1 ? 's' : ''} ago`;
-      } else if (diffDays > 0) {
-        return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-      } else {
-        return 'today';
-      }
+      if (diffYears > 0) return `${diffYears} year${diffYears > 1 ? 's' : ''} ago`;
+      if (diffMonths > 0) return `${diffMonths} month${diffMonths > 1 ? 's' : ''} ago`;
+      if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+      return 'today';
     } catch {
       return '';
     }
@@ -135,7 +145,7 @@ export default function App() {
             onClick={handleTryAgain}
             className="text-2xl font-bold hover:opacity-80 transition cursor-pointer text-white"
           >
-            🍽️ DishTip
+            DishTip
           </button>
           <button
             onClick={handleGiveFeedback}
@@ -151,7 +161,7 @@ export default function App() {
       <main className="flex-1 max-w-2xl mx-auto px-4 py-8 w-full">
         {/* Search Bar */}
         {!restaurant && (
-          <div className="space-y-6">
+          <div className="space-y-6 bg-gradient-to-b from-[#7B113A]/10 via-white to-white rounded-lg py-20">
             <div className="text-center space-y-3 mb-8">
               <h2 className="text-3xl font-bold text-gray-800">
                 Hey there, you snack!
@@ -175,42 +185,30 @@ export default function App() {
         {/* Loading State */}
         {loading && (
           <div className="text-center space-y-6 py-12">
-            {/* Animated Food Icons */}
             <div className="relative w-32 h-32 mx-auto">
-              <div className="absolute inset-0 animate-spin" style={{ animationDuration: '2s' }}>
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 text-4xl">{loadingEmoji}</div>
-              </div>
-              <div className="absolute inset-0 animate-spin" style={{ animationDuration: '2s', animationDelay: '0.5s' }}>
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 text-4xl">{loadingEmoji}</div>
-              </div>
-              <div className="absolute inset-0 animate-spin" style={{ animationDuration: '2s', animationDelay: '1s' }}>
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 text-4xl">{loadingEmoji}</div>
-              </div>
-              <div className="absolute inset-0 animate-spin" style={{ animationDuration: '2s', animationDelay: '1.5s' }}>
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 text-4xl">{loadingEmoji}</div>
-              </div>
+              {[0, 0.5, 1, 1.5].map((d, i) => (
+                <div key={i} className="absolute inset-0 animate-spin" style={{ animationDuration: '2s', animationDelay: `${d}s` }}>
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 text-4xl">{loadingEmoji}</div>
+                </div>
+              ))}
             </div>
-            
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-gray-800">
                 Nom nom. Checking reviews and blogs for dishes mentioned...
               </h3>
               <p className="text-sm text-gray-600">Might take a few seconds ⏱️</p>
             </div>
-
-            {/* Progress bar */}
             <div className="max-w-xs mx-auto">
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full rounded-full animate-pulse"
-                  style={{ 
+                  style={{
                     backgroundColor: '#7B113A',
-                    animation: 'progress 15s ease-in-out forwards'
+                    animation: 'progress 15s ease-in-out forwards',
                   }}
                 ></div>
               </div>
             </div>
-
             <style>{`
               @keyframes progress {
                 from { width: 0%; }
@@ -240,21 +238,28 @@ export default function App() {
         {/* Recommendations */}
         {dishes.length > 0 && (
           <div className="space-y-6">
-            <div className="text-center space-y-2 mb-8 pb-4 border-b-2" style={{ borderColor: '#7B113A' }}>
+            {/* Menu Header */}
+            <div className="text-center space-y-3 mb-6 pb-6 border-b-4 border-double" style={{ borderColor: '#D4AF37' }}>
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <div className="h-px w-16 bg-gradient-to-r from-transparent via-gray-400 to-gray-400"></div>
+                <span className="text-3xl">🍽️</span>
+                <div className="h-px w-16 bg-gradient-to-l from-transparent via-gray-400 to-gray-400"></div>
+              </div>
+              
               {restaurantInfo?.website_url ? (
                 <div>
                   <a
                     href={restaurantInfo.website_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xl font-semibold hover:underline cursor-pointer"
-                    style={{ color: '#7B113A' }}
+                    className="text-3xl font-bold hover:underline cursor-pointer block"
+                    style={{ color: '#7B113A', fontFamily: 'serif' }}
                   >
                     {restaurantInfo?.name || restaurant?.name}
                   </a>
                 </div>
               ) : (
-                <p className="text-xl font-semibold" style={{ color: '#7B113A' }}>
+                <p className="text-3xl font-bold" style={{ color: '#7B113A', fontFamily: 'serif' }}>
                   {restaurantInfo?.name || restaurant?.name}
                 </p>
               )}
@@ -266,98 +271,105 @@ export default function App() {
                       href={restaurantInfo.google_maps_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-gray-600 hover:underline cursor-pointer"
+                      className="text-sm text-gray-600 hover:underline cursor-pointer italic"
                     >
                       {restaurantInfo?.address || restaurant?.formatted_address}
                     </a>
                   ) : (
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 italic">
                       {restaurantInfo?.address || restaurant?.formatted_address}
                     </p>
                   )}
                 </div>
               )}
+              
+              <div className="mt-8 mb-4 text-center">
+                <span
+                  className="text-2xl font-bold uppercase tracking-widest"
+                  style={{ color: '#D4AF37' }}
+                >
+                  Today's Favorites
+                </span>
+              </div>
             </div>
 
-            <div className="space-y-4 max-w-lg mx-auto">
-              {dishes.slice(0, displayCount).map((dish, index) => (
-                <div
-                  key={index}
-                  className="bg-white rounded-lg shadow border-2 p-4 hover:shadow-md transition"
-                  style={{ borderColor: '#7B113A' }}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-sm"
-                         style={{ backgroundColor: '#7B113A' }}>
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-bold mb-1 text-gray-800">
+            {/* Dish List */}
+            <div className="max-w-2xl mx-auto bg-amber-50 rounded-lg shadow-lg border-2 p-8" style={{ borderColor: '#D4AF37' }}>
+              <div className="space-y-6">
+                {dishes.slice(0, displayCount).map((dish, index) => (
+                  <div key={index} className="pb-6 last:pb-0">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-lg font-bold text-gray-900 uppercase whitespace-nowrap">
                         {dish.dish_name || `Dish ${index + 1}`}
                       </h3>
-                      
-                      <div className="space-y-0.5 text-sm text-gray-600">
-                        {dish.author && (
-                          <p className="truncate">
-                            <span className="font-semibold">By:</span> {dish.author}
-                          </p>
-                        )}
-                        {dish.source && (
-                          <p className="truncate">
-                            <span className="font-semibold">Source:</span>{' '}
-                            {dish.review_link ? (
-                              <a
-                                href={dish.review_link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:underline"
-                                style={{ color: '#7B113A' }}
-                              >
-                                {dish.source}
-                              </a>
-                            ) : (
-                              dish.source
-                            )}
-                          </p>
-                        )}
-                        {dish.timestamp && (
-                          <p className="text-gray-500 text-xs">
-                            {formatTimeAgo(dish.timestamp)}
-                          </p>
-                        )}
-                      </div>
+                      <div className="flex-1 border-b border-dotted border-gray-400 self-center"></div>
+                      <span className="text-xs font-medium text-gray-600 whitespace-nowrap italic">
+                        {dishPrices[index]}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-600 italic space-y-1 ml-1">
+                      {dish.author && (
+                        <p><span className="font-normal">Recommended by</span> {dish.author}</p>
+                      )}
+                      {dish.source && (
+                        <p>
+                          <span className="font-normal">As seen in</span>{' '}
+                          {dish.review_link ? (
+                            <a
+                              href={dish.review_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:underline font-medium"
+                              style={{ color: '#7B113A' }}
+                            >
+                              {dish.source}
+                            </a>
+                          ) : (
+                            <span className="font-medium">{dish.source}</span>
+                          )}
+                        </p>
+                      )}
+                      {dish.timestamp && (
+                        <p className="text-gray-500 text-xs">{formatTimeAgo(dish.timestamp)}</p>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Load More Button */}
-            {displayCount < dishes.length && (
-              <div className="text-center pt-4">
-                <button
-                  onClick={handleLoadMore}
-                  className="px-6 py-2.5 rounded-lg font-medium transition hover:opacity-90 text-white"
-                  style={{ backgroundColor: '#7B113A' }}
-                >
-                  Serve More Reviews
-                </button>
+                ))}
               </div>
-            )}
-
-            <div className="text-center pt-6">
-              <button
-                onClick={handleTryAgain}
-                className="px-8 py-3 rounded-lg font-semibold transition hover:opacity-90 text-white text-lg shadow-md bg-gray-700"
-              >
-                Search Again You Hungry Hippo
-              </button>
             </div>
+
+{/* Buttons */}
+<div className="flex justify-center gap-4 pt-6">
+  <button
+    onClick={handleLoadMore}
+    disabled={displayCount >= dishes.length}
+    className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-medium transition text-white ${
+      displayCount >= dishes.length
+        ? 'bg-gray-400 cursor-not-allowed opacity-70'
+        : 'hover:opacity-90'
+    }`}
+    style={{
+      backgroundColor: displayCount >= dishes.length ? '#9CA3AF' : '#7B113A',
+    }}
+  >
+    <Plus size={18} />
+    Serve More Reviews
+  </button>
+
+  <button
+    onClick={handleTryAgain}
+    className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-semibold transition hover:opacity-90 text-white shadow-md"
+    style={{ backgroundColor: '#C46A7B' }}
+  >
+    <RefreshCcw size={18} />
+    Search Again, Hungry Hippo
+  </button>
+</div>
+
           </div>
         )}
       </main>
 
-      {/* Footer */}
       <footer className="bg-white border-t-2 py-4 mt-auto" style={{ borderColor: '#7B113A' }}>
         <div className="max-w-2xl mx-auto px-4 text-center text-sm text-gray-600">
           DishTip - Reducing food order anxiety ever since 2025 🍕
