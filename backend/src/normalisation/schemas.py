@@ -6,8 +6,6 @@ Defines canonical data schemas and source field mappings used for normalization.
 
 from typing import List, Optional, Dict, Any
 
-
-
 # -------- Canonical Review Schema --------
 REVIEW_SCHEMA: Dict[str, Any] = {
     "id": None,            # optional unique ID (e.g. hash of text+source)
@@ -49,6 +47,7 @@ REVIEW_MAPS: Dict[str, Dict[str, str]] = {
         # "inLanguage": "language",
     },
 }
+
 
 # -------- Recommendation Schema --------
 # Recommendation format returned by FastAPI
