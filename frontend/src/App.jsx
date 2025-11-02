@@ -19,9 +19,10 @@ export default function App() {
 
   const loadingEmojis = ['🍕', '🍣', '🍜', '🐟', '🦖', '🍷'];
   const priceLabels = [
-    'some money', 'lots of money', 'expensive', 'cheap', 'good price', 
-    'schnäppchen', 'bargain', 'worth it', 'priceless', 'will ruin you', 
-    'not enough', "doesn't matter", 'holy cow', 'daddy pays', "don't look"
+    'who cares', 'not important', 'worth it', 'priceless', "won't ruin you", 
+    'not enough', "doesn't matter", 'get it', 'daddy pays', "don't look", 'a mystery',
+    'go for it', "your treat", 'ask later', 'optional', 'yolo', 'splurge mode', 
+    'a secret', 'a surprise', 'emotional damage', 'probably fine', 'worth the loan', 'dispo calling'
   ];
   
   const getRandomPrice = () => {
