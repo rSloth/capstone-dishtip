@@ -7,14 +7,13 @@ import logging
 import inspect
 
 # ---- DishTip modules ----
-from src.fetch.google_reviews import fetch_google_reviews
-from src.fetch.google_place import Restaurant
+from src.fetch.google_api import fetch_google_places_data
 from src.nlp.extractor_openai import extract_dishes_openai
 from src.ranking.functions import assign_rankings
 from src.recommendation.recs import form_recommendations
 
 # ---- App setup ----
-app = FastAPI(title="DishTip Backend", version="2.0", debug=True)
+app = FastAPI(title="DishTip Backend", version="3.0", debug=True)
 
 app.add_middleware(
     CORSMiddleware,
@@ -68,7 +67,7 @@ def timed(func):
 
 @app.get("/")
 def root():
-    return {"message": "DishTip API is ready to serve hot tea and tips ☕️"}
+    return {"message": "This API is not a snack, it's the whole damn meal!"}
 
 
 # ✅ Timed and non-blocking route
@@ -76,11 +75,12 @@ def root():
 @timed
 async def get_recommendations(place_id: str):
     try:
-        reviews = await run_in_threadpool(fetch_google_reviews, place_id)
+        restaurant, reviews = await run_in_threadpool(fetch_google_places_data, place_id)
         logger.info(f"📄 Retrieved {len(reviews)} reviews")
+        logger.info(f"📄 Retrieved restaurant information on {restaurant.get('name')} ")
 
-        reviews = await run_in_threadpool(extract_dishes_openai, reviews, True)
-        logger.info(f"🍽️ Dishes extracted for {len(reviews)} reviews")
+        reviews = await extract_dishes_openai(reviews, True)
+
 
         assign_rankings(reviews, True)
         recommendations = form_recommendations(reviews)
@@ -94,6 +94,13 @@ async def get_recommendations(place_id: str):
 
 @app.get("/restaurant_info/{place_id}")
 @timed
-async def get_rest_info(place_id: str):
-    restaurant = await run_in_threadpool(Restaurant, place_id)
-    return {"restaurant_info": restaurant}
+async def get_restaurant_info(place_id: str):
+    try:
+        restaurant, reviews = await run_in_threadpool(fetch_google_places_data, place_id)
+        logger.info(f"📄 Retrieved restaurant information on {restaurant.get('name')} ")
+
+        return {"restaurant_info": restaurant}
+
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
