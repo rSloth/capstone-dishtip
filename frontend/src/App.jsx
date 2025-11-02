@@ -377,10 +377,11 @@ export default function App() {
       </footer>
     </div>
   );
-}
 return (
   <>
     <YourAppContent />
     <Analytics />
   </>
 );
+}
+
