@@ -19,7 +19,7 @@ from typing import Any, Dict, List
 from functools import lru_cache
 from dotenv import load_dotenv
 from openai import OpenAI
-from src.normalisation.schema import DISH
+from src.normalisation.schemas import DISH
 
 # ----------------------------------------------------------------------
 # Setup
@@ -167,8 +167,7 @@ async def extract_dishes_openai(
         dishes = dishes_by_review.get(i, set())
         review["dishes"] = [_make_dish(name) for name in dishes]
         if verbose:
-            logger.info(f"📝 {review.get('text', '')[:250]}...")
-            logger.info(f"🍽️ Extracted: {', '.join(dishes) or 'none'}")
+            logger.info(f"🍽️ Extracted from Review #{i+1}: {', '.join(dishes) or 'none'}")
 
     duration = time.perf_counter() - start_total
     logger.info(f"✅ Completed dish extraction for {len(reviews)} reviews in {duration:.2f}s")

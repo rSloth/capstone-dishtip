@@ -14,7 +14,7 @@ from typing import Any, Dict, List
 from functools import lru_cache
 import logging
 from transformers import pipeline
-from src.normalisation.schema import DISH
+from src.normalisation.schemas import DISH
 
 logger = logging.getLogger(__name__)
 

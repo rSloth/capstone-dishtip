@@ -14,7 +14,7 @@ import requests
 import logging
 from typing import Optional, Any, Dict, List
 from dotenv import load_dotenv
-from src.normalisation.schema import Restaurant, Review
+from src.normalisation.basemodel import Restaurant, Review
 
 logger = logging.getLogger(__name__)
 

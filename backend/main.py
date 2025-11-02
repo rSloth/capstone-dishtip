@@ -9,7 +9,7 @@ import inspect
 # ---- DishTip modules ----
 from src.fetch.google_api import fetch_google_places_data
 from src.nlp.extractor_openai import extract_dishes_openai
-from src.ranking.functions import assign_rankings
+from src.ranking.scoring import assign_dish_scores
 from src.recommendation.recs import form_recommendations
 
 # ---- App setup ----
@@ -82,7 +82,7 @@ async def get_recommendations(place_id: str):
         reviews = await extract_dishes_openai(reviews, True)
 
 
-        assign_rankings(reviews, True)
+        assign_dish_scores(reviews)
         recommendations = form_recommendations(reviews)
 
         return {"recommendations": recommendations}
