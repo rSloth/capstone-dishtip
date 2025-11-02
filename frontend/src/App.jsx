@@ -19,10 +19,11 @@ export default function App() {
 
   const loadingEmojis = ['🍕', '🍣', '🍜', '🐟', '🦖', '🍷'];
   const priceLabels = [
-    'who cares', 'not important', 'worth it', 'priceless', "won't ruin you", 
-    'not enough', "doesn't matter", 'get it', 'daddy pays', "don't look", 'a mystery',
-    'go for it', "your treat", 'ask later', 'optional', 'yolo', 'splurge mode', 
-    'a secret', 'a surprise', 'emotional damage', 'probably fine', 'worth the loan', 'dispo calling'
+    "can't say", 'worth it', 'priceless', "won't ruin you", 
+    'pssst', 'daddy pays', "look away", 'a mystery',
+    'go for it', "treat yourself", 'ask later', 'yolo', 'splurge mode', 
+    'a secret', 'a surprise', 'emotional damage', 'probably fine', 'worth the loan',
+    'future worry', 'nom nom', "go kylie go", "fergalicous", "yes diva" 
   ];
   
   const getRandomPrice = () => {
@@ -300,8 +301,7 @@ export default function App() {
                 {dishes.slice(0, displayCount).map((dish, index) => (
                   <div key={index} className="pb-6 last:pb-0">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-m font-bold text-gray-900 uppercase break-words whitespace-normal leading-snug max-w-[70%]">
-
+                      <h3 className="text-lg font-bold text-gray-900 uppercase whitespace-nowrap">
                         {dish.dish_name || `Dish ${index + 1}`}
                       </h3>
                       <div className="flex-1 border-b border-dotted border-gray-400 self-center"></div>
@@ -309,7 +309,7 @@ export default function App() {
                         {dishPrices[index]}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-600 italic space-y-1 ml-1">
+                    <div className="text-sm text-gray-600 italic space-y-1 ml-1">
                       {dish.author && (
                         <p><span className="font-normal">Recommended by</span> {dish.author}</p>
                       )}
@@ -321,7 +321,7 @@ export default function App() {
                               href={dish.review_link}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="hover:underline font-normal"
+                              className="hover:underline font-medium"
                               style={{ color: '#7B113A' }}
                             >
                               {dish.source}
