@@ -10,7 +10,7 @@ import inspect
 from src.fetch.google_api import fetch_google_places_data
 from src.nlp.extractor_openai import extract_dishes_openai
 from src.ranking.scoring import assign_dish_scores
-from src.recommendation.recs import form_recommendations
+from src.recs.forming import form_recommendations
 
 # ---- App setup ----
 app = FastAPI(title="DishTip Backend", version="3.0", debug=True)
