@@ -40,7 +40,11 @@ def form_recommendations(reviews: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             })
 
     # Sort: dishes with None rankings go last
-    recommendations.sort(key=lambda d: (d["ranking"] is None, d["ranking"]))
+    recommendations.sort(
+        key=lambda rec: (rec["ranking"] is None, -(rec["ranking"] or 0))
+    )
 
     logger.info(f"🍽️ Generated {len(recommendations)} recommendations from {len(reviews)} reviews.")
+    logger.info(f"🍽️ Sorted dish scores are {[rec.get('ranking','') for rec in recommendations]}.")
+    
     return recommendations

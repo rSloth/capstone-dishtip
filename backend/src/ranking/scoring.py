@@ -56,7 +56,7 @@ def assign_dish_scores(reviews: List[Dict[str, Any]]) -> None:
                 # scoring source type
                 if review.get("source_type") == "google" and review.get("dishes"):
                     source_p = google_default_points
-                    if count_words(review.get("author","")) > 1:
+                    if count_words(review.get("author","")) > 1 and len(review.get("author","")) > 5:
                         author_p = 10 # rewards real min. two word names for google reviewrs
 
                 elif review.get("source_type") == "blog" and review.get("dishes"): 
