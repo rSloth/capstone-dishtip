@@ -4,7 +4,7 @@ def assign_rankings(reviews, verbose = False):
     where the source is 'google' and the dish ranking is None.
     """
     for i, review in enumerate(reviews):
-        if review.get("source") == "google" and review.get("dishes"):
+        if review.get("source_type") == "google" and review.get("dishes"):
             google_default_ranking = -1
             for dish in review["dishes"]:
                 if dish.get("ranking") is None:

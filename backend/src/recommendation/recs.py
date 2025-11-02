@@ -1,26 +1,46 @@
-def form_recommendations(reviews):
+import logging
+from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
+
+def form_recommendations(reviews: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Extracts all dishes from a list of reviews and returns
-    them as a flat, sorted list of dicts with metadata.
+    Combines all extracted dishes from review data into a flat, sorted list.
+
+    Each dish entry includes metadata (ranking, author, source, timestamp, etc.).
+    Ensures consistent structure for downstream use in ranking or display.
+
+    Args:
+        reviews: List of normalized review dictionaries, each possibly containing a "dishes" list.
+
+    Returns:
+        A list of dish recommendation dictionaries, sorted by ranking (ascending).
     """
-    recommendations = []
+
+    recommendations: List[Dict[str, Any]] = []
 
     for review in reviews:
-        source = review.get("source")
+        source = review.get("source", "google")
         author = review.get("author")
         url = review.get("url")
-        date = review.get("date")
+        timestamp = review.get("timestamp")
 
-        for dish in review.get("dishes", []):
+        dishes = review.get("dishes", [])
+        if not dishes:
+            continue
+
+        for dish in dishes:
             recommendations.append({
                 "dish_name": dish.get("name"),
                 "ranking": dish.get("ranking"),
                 "author": author,
                 "source": source,
-                "timestamp": date,
+                "timestamp": timestamp,
                 "review_link": url,
             })
 
-    # Sort by ranking (None values last)
+    # Sort: dishes with None rankings go last
     recommendations.sort(key=lambda d: (d["ranking"] is None, d["ranking"]))
+
+    logger.info(f"🍽️ Generated {len(recommendations)} recommendations from {len(reviews)} reviews.")
     return recommendations
