@@ -375,13 +375,8 @@ export default function App() {
           DishTip - Reducing food order anxiety ever since 2025 🍕
         </div>
       </footer>
+    <Analytics />
+
     </div>
   );
-return (
-  <>
-    <YourAppContent />
-    <Analytics />
-  </>
-);
 }
-
