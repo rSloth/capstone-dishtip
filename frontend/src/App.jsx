@@ -5,6 +5,7 @@ const googleKey = import.meta.env.VITE_GOOGLE_API_KEY;
 
 export default function App() {
   const [restaurant, setRestaurant] = useState(null);
+  const [restaurantInfo, setRestaurantInfo] = useState(null);
   const [dishes, setDishes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [displayCount, setDisplayCount] = useState(5);
@@ -53,21 +54,29 @@ export default function App() {
         setRestaurant(place);
         setLoading(true);
         setDisplayCount(5);
+        setRestaurantInfo(null);
         
         // Select new random emoji for each search
         const randomEmoji = ['🍕', '🍣', '🍜', '🐟', '🦖', '🍷'][Math.floor(Math.random() * 6)];
         setLoadingEmoji(randomEmoji);
 
         try {
-          const url = `${backendUrl}/recommendations/${place.place_id}`;
-          const res = await fetch(url);
-          const data = await res.json();
+          // First, get restaurant info
+          const infoUrl = `${backendUrl}/restaurant_info/${place.place_id}`;
+          const infoRes = await fetch(infoUrl);
+          const infoData = await infoRes.json();
+          setRestaurantInfo(infoData.restaurant_info); // Access nested restaurant_info object
 
-          console.log("🔥 Backend response:", data);
+          // Then get recommendations
+          const recUrl = `${backendUrl}/recommendations/${place.place_id}`;
+          const recRes = await fetch(recUrl);
+          const recData = await recRes.json();
+
+          console.log("🔥 Backend response:", recData);
 
           // EXPECTED SHAPE:
           // { recommendations: [ { dish_name, author, source, timestamp, review_link, ranking }, ... ] }
-          const dishesArray = data?.recommendations ?? [];
+          const dishesArray = recData?.recommendations ?? [];
           setDishes(Array.isArray(dishesArray) ? dishesArray : []);
         } catch (err) {
           console.error("Backend error:", err);
@@ -232,11 +241,41 @@ export default function App() {
         {dishes.length > 0 && (
           <div className="space-y-6">
             <div className="text-center space-y-2 mb-8 pb-4 border-b-2" style={{ borderColor: '#7B113A' }}>
-              <p className="text-xl font-semibold" style={{ color: '#7B113A' }}>
-                {restaurant?.name}
-              </p>
-              {restaurant?.formatted_address && (
-                <p className="text-sm text-gray-600">{restaurant.formatted_address}</p>
+              {restaurantInfo?.website_url ? (
+                <div>
+                  <a
+                    href={restaurantInfo.website_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xl font-semibold hover:underline cursor-pointer"
+                    style={{ color: '#7B113A' }}
+                  >
+                    {restaurantInfo?.name || restaurant?.name}
+                  </a>
+                </div>
+              ) : (
+                <p className="text-xl font-semibold" style={{ color: '#7B113A' }}>
+                  {restaurantInfo?.name || restaurant?.name}
+                </p>
+              )}
+              
+              {(restaurantInfo?.address || restaurant?.formatted_address) && (
+                <div>
+                  {restaurantInfo?.google_maps_url ? (
+                    <a
+                      href={restaurantInfo.google_maps_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-gray-600 hover:underline cursor-pointer"
+                    >
+                      {restaurantInfo?.address || restaurant?.formatted_address}
+                    </a>
+                  ) : (
+                    <p className="text-sm text-gray-600">
+                      {restaurantInfo?.address || restaurant?.formatted_address}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 
@@ -247,62 +286,46 @@ export default function App() {
                   className="bg-white rounded-lg shadow border-2 p-4 hover:shadow-md transition"
                   style={{ borderColor: '#7B113A' }}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-sm"
-                           style={{ backgroundColor: '#7B113A' }}>
-                        {index + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-bold mb-1 text-gray-800">
-                          {dish.dish_name || `Dish ${index + 1}`}
-                        </h3>
-                        
-                        <div className="space-y-0.5 text-sm text-gray-600">
-                          {dish.author && (
-                            <p className="truncate">
-                              <span className="font-semibold">By:</span> {dish.author}
-                            </p>
-                          )}
-                          {dish.source && (
-                            <p className="truncate">
-                              <span className="font-semibold">Source:</span> {dish.source}
-                            </p>
-                          )}
-                          {dish.timestamp && (
-                            <p className="text-gray-500 text-xs">
-                              {formatTimeAgo(dish.timestamp)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-sm"
+                         style={{ backgroundColor: '#7B113A' }}>
+                      {index + 1}
                     </div>
-
-                    {/* Link Icon Button */}
-                    <div className="flex-shrink-0">
-                      {dish.review_link ? (
-                        <a
-                          href={dish.review_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="w-9 h-9 rounded-full flex items-center justify-center transition hover:opacity-80"
-                          style={{ backgroundColor: '#7B113A' }}
-                          title="Read review"
-                        >
-                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        </a>
-                      ) : (
-                        <div
-                          className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-300"
-                          title="No review available"
-                        >
-                          <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                          </svg>
-                        </div>
-                      )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-bold mb-1 text-gray-800">
+                        {dish.dish_name || `Dish ${index + 1}`}
+                      </h3>
+                      
+                      <div className="space-y-0.5 text-sm text-gray-600">
+                        {dish.author && (
+                          <p className="truncate">
+                            <span className="font-semibold">By:</span> {dish.author}
+                          </p>
+                        )}
+                        {dish.source && (
+                          <p className="truncate">
+                            <span className="font-semibold">Source:</span>{' '}
+                            {dish.review_link ? (
+                              <a
+                                href={dish.review_link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:underline"
+                                style={{ color: '#7B113A' }}
+                              >
+                                {dish.source}
+                              </a>
+                            ) : (
+                              dish.source
+                            )}
+                          </p>
+                        )}
+                        {dish.timestamp && (
+                          <p className="text-gray-500 text-xs">
+                            {formatTimeAgo(dish.timestamp)}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
