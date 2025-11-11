@@ -4,6 +4,9 @@
 It fetches live Google review data, extracts dish mentions using an NLP model, and ranks them by frequency and source validity.
 It’s your AI food scout that tells you *what to order* before you even sit down. 😋
 
+<kbd>[**Link to the DishTip App**](https://dishtip.vercel.app/)</kbd>
+
+
 ---
 ## 🧠 How to locally run the app
 
